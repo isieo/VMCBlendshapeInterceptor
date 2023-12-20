@@ -1,0 +1,92 @@
+{
+    "local_address": "0.0.0.0",
+    "receive_port": 39538,
+    "send_host": "127.0.0.1",
+    "send_port": 39539,
+    "debug_controller": false,
+    "animationFPS": 60,
+    "blend_shapes": [
+        {
+           "name":"AlternativeCostume",
+           "toggle":true,
+           "intercept":true,
+           "initial_value":0,
+           "target_value":1,
+           "trigger_type":"controller",
+           "trigger_conditions":[
+              {
+                 "button_name":"XButton",
+                 "is_left":true,
+                 "value":1
+              },
+              {
+                 "button_name":"BButton",
+                 "is_left":false,
+                 "value":1
+              }
+           ],
+           "transition_type":"linear",
+           "transition_duration":1,
+           "animation_type":"oneoff"
+        },
+        {
+           "name":"HideEars",
+           "toggle":true,
+           "intercept":true,
+           "initial_value":0,
+           "target_value":1,
+           "trigger_type":"controller",
+           "trigger_conditions":[
+              {
+                 "button_name":"XButton",
+                 "is_left":true,
+                 "value":1
+              },
+              {
+                 "button_name":"AButton",
+                 "is_left":false,
+                 "value":1
+              }
+           ],
+           "transition_type":"bezier",
+           "transition_bezier":[
+              0.59,
+              0.1,
+              0.34,
+              1
+           ],
+           "transition_duration":1000,
+           "animation_type":"oneoff"
+        },
+        {
+           "name":"A",
+           "toggle":true,
+           "intercept":true,
+           "initial_value":0,
+           "target_value":1,
+           "trigger_type":"controller",
+           "trigger_conditions":[
+              {
+                 "button_name":"XButton",
+                 "is_left":true,
+                 "value":1
+              },
+              {
+                 "button_name":"AButton",
+                 "is_left":false,
+                 "value":1
+              }
+           ],
+           "transition_type":"bezier",
+           "transition_bezier":[
+              0.59,
+              0.1,
+              0.34,
+              1
+           ],
+           "transition_duration":1000,
+           "animation_type":"bounce"
+        }
+     ]
+}
+
