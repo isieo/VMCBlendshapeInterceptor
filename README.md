@@ -84,12 +84,12 @@ Config
            "trigger_type":"controller",
            "trigger_conditions":[
               {
-                 "button_name":"XButton",
+                 "button_name":"ClickXbutton",
                  "is_left":true,
                  "value":1
               },
               {
-                 "button_name":"AButton",
+                 "button_name":"ClickAbutton",
                  "is_left":false,
                  "value":1
               }
