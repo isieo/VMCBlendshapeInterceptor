@@ -110,7 +110,7 @@ Upon pressing the X button and the A button on your VR controllers, this will se
 
 
 
-[[/readme/demo.gif|Animated Mouth]]
+![[/readme/demo.gif|Animated Mouth]]
 
 
 
