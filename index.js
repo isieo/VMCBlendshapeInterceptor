@@ -103,7 +103,6 @@ function transition_blend_shape(blendShape) {
   if (curve > 1) curve = 1;
   if (curve < 0) curve = 0;
   
-  console.log(t,blendShape.frame , curve)
   return curve
 }
 
@@ -123,7 +122,6 @@ function update_blend_shapes() {
         (blendShape.direction == "decrease" && blendShape.current_value <= blendShape.target_value)
       ) {
         if (blendShape.animation_type == "bounce") {
-          console.log("flipping", blendShape.direction, (blendShape.direction == "increase" && blendShape.current_value >= blendShape.target_value), (blendShape.direction == "decrease" && blendShape.current_value <= blendShape.target_value))
           start_transition(blendShapeConfig.find((b) =>{ return b.name == blendShapeName }), true)
         } else {
           blendShape.is_transitioning = false
