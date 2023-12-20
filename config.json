@@ -4,7 +4,7 @@
     "send_host": "127.0.0.1",
     "send_port": 39539,
     "debug_controller": false,
-    "animationFPS": 60,
+    "animation_fps": 60,
     "blend_shapes": [
         {
            "name":"AlternativeCostume",
