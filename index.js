@@ -16,34 +16,37 @@ udpPort.open();
 
 const host = CONFIG.send_host
 const port = CONFIG.send_port
+const performer_port = CONFIG.performer_port
 const animationFPS = CONFIG.animation_fps
-const DEBUG_BUTTONS = CONFIG.debug_buttons
+const DEBUG_BUTTONS = CONFIG.debug_controller
 
 var blendShapeConfig = CONFIG.blend_shapes
 
 var blendShapeState = {}
+
+var controllerButtons = {}
 
 udpPort.on("message", function (oscMsg, timeTag, info) {
   if (oscMsg.address == "/VMC/Ext/Con") {
     if (DEBUG_BUTTONS) {
       console.log(oscMsg)
     }
-    blendShapeConfig.forEach((blendShape) => {
-      blendShape.trigger_conditions.forEach((trigger) => {
-        if (trigger.button_name == oscMsg.args[1].value && trigger.is_left == oscMsg.args[2].value) {
-          start_transition(blendShape)
-        }
-      })
-    })
+    controllerButtons[oscMsg.args[1].value] = {value: oscMsg.args[0].value, is_left: oscMsg.args[2].value}
   }else if (oscMsg.address == "/VMC/Ext/Blend/Val") {
     let skip = false
+
     blendShapeConfig.forEach((blendShape) => {
       if (blendShape.name == oscMsg.args[0].value && blendShape.intercept) {
         skip = true
         return;
       }
     })
-    if (skip) return;
+    if (!skip && blendShapeState[oscMsg.args[0].value] && !blendShapeState[oscMsg.args[0].value].is_transitioning){
+	 blendShapeState[oscMsg.args[0].value].current_value = oscMsg.args[1].value;
+    }
+    if (skip) {
+      return;
+    }
   }
   udpPort.send(oscMsg, host , port)
 });
@@ -61,27 +64,23 @@ function start_transition(blendShape, bounce = false) {
       return
     }
   }
-  blendShapeState[blendShape.name] = {
-    initial_value: blendShape.initial_value,
-    target_value: blendShape.target_value,
-    transition_duration: blendShape.transition_duration,
-    animation_type: blendShape.animation_type,
-    transition_bezier: blendShape.transition_bezier,
-    transition_type: blendShape.transition_type,
-    start_time: Date.now(),
-    frame: 0,
-    is_transitioning: true
-  }
+    if (blendShapeState[blendShape.name] == undefined) blendShapeState[blendShape.name] = {};
 
-  if (bounce || (blendShape.toggle && blendShapeState[blendShape.name] && !blendShapeState[blendShape.name].is_transitioning)) {
-    blendShapeState[blendShape.name].initial_value = blendShape.target_value
-    blendShapeState[blendShape.name].target_value =  blendShape.initial_value
-  }
-
-  blendShapeState[blendShape.name].direction =  (blendShapeState[blendShape.name].initial_value < blendShapeState[blendShape.name].target_value) ? "increase" : "decrease"
-  
-  
-
+    if (bounce || (blendShape.toggle && blendShapeState[blendShape.name] && blendShapeState[blendShape.name].current_value)) {
+      blendShapeState[blendShape.name].initial_value = blendShape.target_value
+      blendShapeState[blendShape.name].target_value =  blendShape.initial_value
+    }else{
+      blendShapeState[blendShape.name].initial_value = blendShape.initial_value
+      blendShapeState[blendShape.name].target_value = blendShape.target_value
+    }
+    blendShapeState[blendShape.name].transition_duration = blendShape.transition_duration
+    blendShapeState[blendShape.name].animation_type = blendShape.animation_type
+    blendShapeState[blendShape.name].transition_bezier = blendShape.transition_bezier
+    blendShapeState[blendShape.name].transition_type = blendShape.transition_type
+    blendShapeState[blendShape.name].start_time = Date.now()
+    blendShapeState[blendShape.name].frame = 0
+    blendShapeState[blendShape.name].is_transitioning = true
+    blendShapeState[blendShape.name].direction =  (blendShapeState[blendShape.name].initial_value < blendShapeState[blendShape.name].target_value) ? "increase" : "decrease"
 }
 
 
@@ -100,41 +99,46 @@ function transition_blend_shape(blendShape) {
   if (blendShape.direction == "decrease"){
     curve = 1 - curve
   }
+
   if (curve > 1) curve = 1;
   if (curve < 0) curve = 0;
-  
   return curve
 }
 
+let blendShapeChanges = {}
 function update_blend_shapes() {
-  let blendShapeChanges = {}
   Object.keys(blendShapeState).forEach((blendShapeName) => {
-    let blendShape = blendShapeState[blendShapeName]
-    if (blendShape.current_value == undefined) {
-      blendShape.current_value = blendShape.initial_value
+    if (blendShapeState[blendShapeName].current_value == undefined) {
+      blendShapeState[blendShapeName].current_value = blendShapeState[blendShapeName].initial_value
     }
-    if (blendShape.is_transitioning) {
-      blendShape.current_value = transition_blend_shape(blendShape)
+    if (blendShapeState[blendShapeName].is_transitioning) {
+      blendShapeState[blendShapeName].current_value = transition_blend_shape(blendShapeState[blendShapeName])
+      blendShapeChanges[blendShapeName] = blendShapeState[blendShapeName].current_value
     }
-    blendShapeChanges[blendShapeName] = blendShape.current_value
-    if ( blendShape.is_transitioning &&
-        (blendShape.direction == "increase" && blendShape.current_value >= blendShape.target_value) ||
-        (blendShape.direction == "decrease" && blendShape.current_value <= blendShape.target_value)
+
+    if ( blendShapeState[blendShapeName].is_transitioning &&
+        (blendShapeState[blendShapeName].direction == "increase" && blendShapeState[blendShapeName].current_value >= blendShapeState[blendShapeName].target_value) ||
+        (blendShapeState[blendShapeName].direction == "decrease" && blendShapeState[blendShapeName].current_value <= blendShapeState[blendShapeName].target_value)
       ) {
-        if (blendShape.animation_type == "bounce") {
+        if (blendShapeState[blendShapeName].animation_type == "bounce") {
           start_transition(blendShapeConfig.find((b) =>{ return b.name == blendShapeName }), true)
         } else {
-          blendShape.is_transitioning = false
+          blendShapeState[blendShapeName].is_transitioning = false
         }
     }
   })
+
   Object.keys(blendShapeChanges).forEach((blendShapeName) => {
     sendBlendShape(blendShapeName, blendShapeChanges[blendShapeName])
   })
-  commitBlendShape()
+  if (Object.keys.length > 0)  commitBlendShape()
+  startBlendshapeTimer()
+
 }
 
 function sendBlendShape(shape, val, commit = false){
+  var dport = port
+  if (CONFIG.send_blendshape_to_performer) dport = performer_port
   udpPort.send({
       address: "/VMC/Ext/Blend/Val",
       args: [
@@ -147,13 +151,15 @@ function sendBlendShape(shape, val, commit = false){
               value: val
           }
       ]
-  }, host, port);
+  }, host, dport);
 
   if (commit) commitBlendShape();
 }
 
 function commitBlendShape(){
-  udpPort.send({address: "/VMC/Ext/Blend/Apply"}, host , port);
+  var dport = port
+  if (CONFIG.send_blendshape_to_performer) dport = performer_port
+  udpPort.send({address: "/VMC/Ext/Blend/Apply"}, host , dport);
 }
 
 
@@ -161,12 +167,41 @@ function commitBlendShape(){
 // When the port is read, send an OSC message to, say, SuperCollider
 udpPort.on("ready", function () {
   blendShapeConfig.forEach((blendShape) => {
+    startBlendshapeTimer()
+
     if (blendShape.trigger_type == "startup") {
       start_transition(blendShape)
     }
   })
 });
 
-setInterval(() => {
-  update_blend_shapes()
-},1000/animationFPS)
+function startControllerTimer(){
+	setTimeout(checkControllerIO,100)
+}
+
+let lastKeyCombiDelay = {}
+function checkControllerIO(){
+      blendShapeConfig.forEach((blendShape) => {
+      if (Date.now() - lastKeyCombiDelay[blendShape.name] < 1000) {
+	return;
+      }
+      if (blendShape.trigger_type != "controller") return;
+      let match = blendShape.trigger_conditions.length > 0
+      blendShape.trigger_conditions.forEach((trigger) => {
+        match &&= controllerButtons[trigger.button_name] && trigger.is_left == controllerButtons[trigger.button_name].is_left && trigger.value == controllerButtons[trigger.button_name].value
+      })
+
+      if (match){
+         lastKeyCombiDelay[blendShape.name] = Date.now()
+         console.log("Triggering " + blendShape.name)
+	       start_transition(blendShape);
+      }
+    })
+    startControllerTimer()
+}
+
+startControllerTimer()
+
+function startBlendshapeTimer(){
+  setTimeout(update_blend_shapes,1000/animationFPS)
+}
