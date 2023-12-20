@@ -31,6 +31,8 @@ The first few lines should be quite self explainatory
     "receive_port": 39538,       // The receiving port from VMC or any other sending software
     "send_host": "127.0.0.1",    // The destination Host or ip address if you are running this on the same computer where the game/marionette software is keep it at 127.0.0.1
     "send_port": 39539,          // The destination Port (Beatsaber vmc plugin, Vseeface, etc)
+    "performer_port": 39540,     // the port that the prrformer can receive (usually from Assistants)
+    "send_blendshape_to_performer": false, //send the blendshapes to the performer port instead of the game/marionette
     "debug_controller": false,   // For VR use, you might want to find the actual button names, set this to true then in steamvr, press the buttons it should appear in the console window (make sure steam menu is closed)
     "animationFPS": 60,          // How many "frames" should be sent per second when animating a blendshape
 ```
