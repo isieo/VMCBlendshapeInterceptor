@@ -50,8 +50,7 @@ Blendshape config
     "trigger_conditions":[         // used when options is set to "controller"
         {
             "button_name":"XButton",   // The button name that was triggered, use "debug_controller" to find out the names
-            "is_left":true,            // If this button is from the left controller or not
-            "value":1                  // 1=press, 0=release, 2=change Axis  (as per VMC protocol)
+            "value":1                  // 1=press, 0=release, 2=change Axis  (as per VMC protocol) for thumbstick or dpad it can be: "right", "left", "top", "bottom", "topleft", "topright", "bottomleft", "bottomright" or "none"
         },
         ... // you can have more buttons to handle button combinations
     ],
@@ -84,13 +83,11 @@ Config
            "trigger_type":"controller",
            "trigger_conditions":[
               {
-                 "button_name":"XButton",
-                 "is_left":true,
+                 "button_name":"LeftClickXbutton",
                  "value":1
               },
               {
-                 "button_name":"AButton",
-                 "is_left":false,
+                 "button_name":"RightClickAbutton",
                  "value":1
               }
            ],

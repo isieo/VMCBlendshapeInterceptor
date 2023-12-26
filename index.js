@@ -28,10 +28,19 @@ var controllerButtons = {}
 
 udpPort.on("message", function (oscMsg, timeTag, info) {
   if (oscMsg.address == "/VMC/Ext/Con") {
+    
+    let side = oscMsg.args[2].value == 1 ? "Left" : "Right"
     if (DEBUG_BUTTONS) {
-      console.log(oscMsg)
+      console.log(side+oscMsg.args[1].value, oscMsg)
     }
-    controllerButtons[oscMsg.args[1].value] = {value: oscMsg.args[0].value, is_left: oscMsg.args[2].value}
+    
+    if (oscMsg.args[4].value > 0) { // if is dpad
+      let dpadDirection = getDpadDirection(oscMsg.args[5].value, oscMsg.args[6].value)
+        controllerButtons[side+oscMsg.args[1].value] = { value: dpadDirection, is_dpad: true, time: Date.now() }
+    }else{
+      controllerButtons[side+oscMsg.args[1].value] = { value: oscMsg.args[0].value, is_dpad: false, time: Date.now()}
+    }
+    
   }else if (oscMsg.address == "/VMC/Ext/Blend/Val") {
     let skip = false
 
@@ -162,7 +171,24 @@ function commitBlendShape(){
   udpPort.send({address: "/VMC/Ext/Blend/Apply"}, host , dport);
 }
 
-
+/* 
+  Get the direction of the dpad based on the x,y values
+  x,y are the floats
+  this function will normalize the values to 0,1,-1
+  then return either "right", "left", "top", "bottom", "topleft", "topright", "bottomleft", "bottomright", "none"
+*/
+function getDpadDirection(x,y){
+  let xdir = "none"
+  let ydir = "none"
+  if (x > 0.5) xdir = "right"
+  if (x < -0.5) xdir = "left"
+  if (y > 0.5) ydir = "top"
+  if (y < -0.5) ydir = "bottom"
+  if (xdir == "none" && ydir == "none") return "none"
+  if (xdir == "none") return ydir
+  if (ydir == "none") return xdir
+  return ydir + xdir
+}
 
 // When the port is read, send an OSC message to, say, SuperCollider
 udpPort.on("ready", function () {
@@ -183,12 +209,14 @@ let lastKeyCombiDelay = {}
 function checkControllerIO(){
       blendShapeConfig.forEach((blendShape) => {
       if (Date.now() - lastKeyCombiDelay[blendShape.name] < 1000) {
-	return;
+	      return;
       }
       if (blendShape.trigger_type != "controller") return;
       let match = blendShape.trigger_conditions.length > 0
       blendShape.trigger_conditions.forEach((trigger) => {
-        match &&= controllerButtons[trigger.button_name] && trigger.is_left == controllerButtons[trigger.button_name].is_left && trigger.value == controllerButtons[trigger.button_name].value
+        match &&= controllerButtons[trigger.button_name] &&
+                  trigger.value == controllerButtons[trigger.button_name].value &&
+                  Date.now() - controllerButtons[trigger.button_name].time < (trigger.max_held ? trigger.max_held : 250)
       })
 
       if (match){
