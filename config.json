@@ -17,13 +17,11 @@
           "trigger_type":"controller",
           "trigger_conditions":[
              {
-                "button_name":"ClickXbutton",
-                "is_left":true,
+                "button_name":"LeftClickXbutton",
                 "value":1
              },
              {
-                "button_name":"ClickBbutton",
-                "is_left":false,
+                "button_name":"RightClickBbutton",
                 "value":1
              }
           ],
@@ -40,13 +38,11 @@
           "trigger_type":"controller",
           "trigger_conditions":[
              {
-                "button_name":"ClickXbutton",
-                "is_left":true,
+                "button_name":"LeftClickXbutton",
                 "value":1
              },
              {
-                "button_name":"ClickAbutton",
-                "is_left":false,
+                "button_name":"RightClickAbutton",
                 "value":1
              }
           ],
@@ -76,7 +72,26 @@
           ],
           "transition_duration":1000,
           "animation_type":"oneoff"
-       }
+       },
+       {
+         "name":"Happy",
+         "toggle":true,
+         "intercept":true,
+         "initial_value":0,
+         "target_value":1,
+         "trigger_type":"controller",
+         "trigger_conditions":[
+            {
+               "button_name":"RightPositionThumbStick",
+               "max_held": 250,
+               "value": "right"
+            }
+         ],
+         "transition_type":"linear",
+         "transition_duration":200,
+         "animation_type":"oneoff"
+        }
+
     ]
 }
 
