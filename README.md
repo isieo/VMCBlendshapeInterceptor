@@ -9,7 +9,7 @@ I also don't want to make a Unity app for this as i feel that it will add additi
 
 ## Proxy mode
 This will let the application live between the Performer(e.g. VMC) and the Marionette (Beatsaber VMC plugin, Vseeface, etc)
-To set this up, you will have to set the "local_port" to be the port number of your Performer software and then the "send_port" to the Marionette software's port
+To set this up, you will have to set the "receive_port" to be the port number of your Performer software and then the "send_port" to the Marionette software's port
 This will make the Performer connect to this script and this script will connect to Marionette allowing you to intercept or modify the vmc protocol sent
 
 Use this mode when you need to read controller input or you need to modify the data being sent, this mode should be the primary way to use this script
@@ -18,7 +18,11 @@ Use this mode when you need to read controller input or you need to modify the d
 This will act as a simple blendshape sender, "local_port" can be set to any unused port number as its not important. 
 "send_host" should be the port number of the Performer's receiving port usually port 39540
 
-Use this mode if you only need to trigger blendshapes with "trigger_type": "startup", useful for setting up alternative costumes or persistant animations
+# Hybrid mode (Reccomended)
+This is probably the way forward. Set the "receive_port" to Performer's(e.g. VMC) send port, then Send Port to the Marionette (Beatsaber VMC plugin, Vseeface, etc)
+set "send_blendshape_to_performer" to true and set the performer_port to the performer's vmc input. With this setup, any blendshape or camera data will also be reflected by 
+the Performer. Remember to turn off "intercept" for blendshape config
+
 
 # Configuration
 
@@ -49,7 +53,9 @@ Blendshape config
     "trigger_type":"controller",   // Current Available options: "controller", "startup"
     "trigger_conditions":[         // used when options is set to "controller"
         {
-            "button_name":"XButton",   // The button name that was triggered, use "debug_controller" to find out the names
+            "button_name":"LeftClickXbutton",   // The button name that was triggered, use "debug_controller" to find out the names
+            "trigger_debounce": 1000,           // Debounce the button, this is to prevent double execution, increase if it "doubleclicks"
+            "max_held": 250,                    // How long to hold button to activate the trigger
             "value":1                  // 1=press, 0=release, 2=change Axis  (as per VMC protocol) for thumbstick or dpad it can be: "right", "left", "top", "bottom", "topleft", "topright", "bottomleft", "bottomright" or "none"
         },
         ... // you can have more buttons to handle button combinations
@@ -70,9 +76,128 @@ Blendshape config
 ```
 
 
+Camera Config
+The Camera Config is based on Beatsaber's CameraPlus to make it easy for someone to use existing movement scripts, only additional thing to add is the "name" key
+See: https://github.com/Snow1226/CameraPlus/wiki/MovementScript
+To get camera coordinates, you can set "CameraCoordinates" as one of the blendshape and assign a key on it.
+
+```
+"camera_controls": {
+   "MovementScript1": {  // Name of the movment script, use this in place of a Blendshape name in the Blendshape config to activate, values will be ignored in the blendshape config
+      "HeadBone": "Head",           // Name Of the Head Bone, you can change this to other body parts to override head
+      "TurnToHeadUseCameraSetting": false,
+                                    //"TurnToHeadUseCameraSetting"
+                                                         : If the setting to point the camera at the HMD is true, match it with the camera body.  
+                                                            If false, use the value in the Movements section.  
+      "Movements": [                 //"Movements"        : Position description section of the moving camera.
+         {
+            "StartPos": {              //"StartPos"         : Camera start position (the center of the play area is 0,0,0).
+                  "x": 2,
+                  "y": 1.75,
+                  "z": -2,
+                  "FOV": 90              //"FOV"              : (Optional) StartFOV 
+            },
+            "StartRot": {              //"StartRot"         : The rotation at which the camera starts (0,0,0 looks straight at the main menu).
+                  "x": 15,
+                  "y": -15,
+                  "z": 0
+            },
+            "StartHeadOffset": {       //"StartHeadOffset"  : (Optional) Only when TurnToHead or TurnToHeadUseCameraSetting is enabled
+                  "x": 0,　　　　　　　　　　　　　　　　　　　　　 Offset when pointing the camera towards the HMD(the center of the HMD is 0,0,0).
+                  "y": 0,
+                  "z": 0
+            },
+            "EndPos": {                //"EndPos"           : The position where the camera ends.
+                  "x": 2,
+                  "y": 1,
+                  "z": 9,
+                  "FOV": 40              //"FOV"              : (Optional) EndFOV 
+            },
+            "EndRot": {                //"EndRot"           : The rotation at which the camera ends.
+                  "x": 15,
+                  "y": -40,
+                  "z": 0
+            },
+            "EndHeadOffset": {         //"EndHeadOffset"    : (Optional) Only when TurnToHead or TurnToHeadUseCameraSetting is enabled
+                  "x": 0,　　　　　　　　　　　　　　　　　　　　 　Offset when pointing the camera towards the HMD(the center of the HMD is 0,0,0).
+                  "y": 0,
+                  "z": 0
+            },
+            "CameraEffect":{
+                  "enableDoF": false,
+                  "dofAutoDistance": false,
+                  "StartDoF": {
+                        "dofFocusDistance": 1.0,
+                        "dofFocusRange": 1.0,
+                        "dofBlurRadius": 5.0
+                  },
+                  "EndDoF": {
+                        "dofFocusDistance": 1.0,
+                        "dofFocusRange": 1.0,
+                        "dofBlurRadius": 5.0
+                  },
+                  "wipeType": "Circle",
+                  "StartWipe": {
+                        "wipeProgress": 0.0,
+                        "wipeCircleCenter": {
+                              "x": 0.0,
+                              "y": 0.0
+                        }
+                  },
+                  "EndWipe": {
+                        "wipeProgress": 0.0,
+                        "wipeCircleCenter": {
+                              "x": 0.0,
+                              "y": 0.0
+                        }
+                  },
+                  "enableOutlineEffect": false,
+                  "StartOutlineEffect": {
+                        "outlineEffectOnly": 0.0,
+                        "outlineColor":{
+                              "r": 0.0,
+                              "g": 0.0,
+                              "b": 0.0
+                        },
+                        "outlineBackgroundColor":{
+                              "r": 0.0,
+                              "g": 0.0,
+                              "b": 0.0
+                        }
+                  },
+                  "EndOutlineEffect": {
+                        "outlineEffectOnly": 0.0,
+                        "outlineColor":{
+                              "r": 0.0,
+                              "g": 0.0,
+                              "b": 0.0
+                        },
+                        "outlineBackgroundColor":{
+                              "r": 0.0,
+                              "g": 0.0,
+                              "b": 0.0
+                        }
+                  }
+            },
+            "TurnToHead": false,       //"TurnToHead"       : If true, this section will point the camera at the HMD.
+            "Duration": 4,             //"Duration"         : The time it takes for the transition to start / end / rotate.
+            "Delay": 0,                //"Delay"            : the time to wait before proceeding to the next move.
+            "EaseTransition": true     //"EaseTransition"   : If false, the transition between start / end will be linear. Otherwise, the transition is slower from the beginning to the end and faster.
+            "EaseBezier": [           //"EaseBezier"        : Use this curve for easing, Note that this does not exist in cameraplus motion script, if left blank, default value is [0.34,0.1,0.34,1]
+               0.34,
+               0.1,
+               0.34,
+               1
+            ]
+         }
+      ]
+   }
+}
+```
+
 # Example
 
-Config
+BlendShape Config Example
 ```
         {
            "name":"A",
@@ -112,3 +237,208 @@ Upon pressing the X button and the A button on your VR controllers, this will se
 
 
 
+
+Camera script example
+```
+"blend_shapes": [
+        {
+           "name":"MotionScript1",
+           "toggle":true,
+           "intercept":true,
+           "initial_value":0,
+           "target_value":1,
+           "trigger_type":"controller",
+           "trigger_conditions":[
+              {
+                 "button_name":"RightClickAbutton",
+                 "value":1
+              }
+           ],
+           "transition_type":"bezier",
+           "transition_bezier":[
+              0.59,
+              0.1,
+              0.34,
+              1
+           ],
+           "transition_duration":1000,
+           "animation_type":"bounce"
+        }
+        ...
+],
+...
+    "camera_motions": {
+      "MovementScript1": {
+         "Movements": [
+         {
+            "HeadBone": "Head",
+            "StartPos": {
+               "x": 2,
+               "y": 1.75,
+               "z": 2,
+               "FOV": 90  
+            },
+            "StartRot": {   
+               "x": 15,
+               "y": -15,
+               "z": 0
+            },
+            "StartHeadOffset": {   
+               "x": 0,
+               "y": 0,
+               "z": 0
+            },
+            "EndPos": {
+               "x": 2,
+               "y": 1.75,
+               "z": -2,
+               "FOV": 90   
+            },
+            "EndRot": {           
+               "x": 15,
+               "y": -40,
+               "z": 0
+            },
+            "EndHeadOffset": {     
+               "x": 0,
+               "y": 0,
+               "z": 0
+            },
+            "TurnToHead": true, 
+            "TurnToHeadHorizontal": false,
+            "Duration": 2,
+            "Delay": 0,
+            "EaseTransition": false
+         },
+         {
+            "HeadBone": "Head",
+            "StartPos": {
+               "x": 2,
+               "y": 1.75,
+               "z": -2,
+               "FOV": 90  
+            },
+            "StartRot": {   
+               "x": 15,
+               "y": -15,
+               "z": 0
+            },
+            "StartHeadOffset": {   
+               "x": 0,
+               "y": 0,
+               "z": 0
+            },
+            "EndPos": {  
+               "x": -2,
+               "y": 1,
+               "z": -2,
+               "FOV": 90      
+            },
+            "EndRot": {           
+               "x": 15,
+               "y": -40,
+               "z": 0
+            },
+            "EndHeadOffset": {     
+               "x": 0,
+               "y": 0,
+               "z": 0
+            },
+            "TurnToHead": true, 
+            "TurnToHeadHorizontal": false,
+            "Duration": 2,
+            "Delay": 0,
+            "EaseTransition": false
+         },
+         {
+            "HeadBone": "Head",
+            "StartPos": {
+               "x": -2,
+               "y": 1,
+               "z": -2,
+               "FOV": 90  
+            },
+            "StartRot": {   
+               "x": 15,
+               "y": -15,
+               "z": 0
+            },
+            "StartHeadOffset": {   
+               "x": 0,
+               "y": 0,
+               "z": 0
+            },
+            "EndPos": {  
+               "x": -2,
+               "y": 1,
+               "z": 2,
+               "FOV": 90      
+            },
+            "EndRot": {           
+               "x": 15,
+               "y": -40,
+               "z": 0
+            },
+            "EndHeadOffset": {     
+               "x": 0,
+               "y": 0,
+               "z": 0
+            },
+            "TurnToHead": true, 
+            "TurnToHeadHorizontal": false,
+            "Duration": 2,
+            "Delay": 0,
+            "EaseTransition": false
+         },
+         {
+            "HeadBone": "Head",
+            "StartPos": {
+               "x": -2,
+               "y": 1,
+               "z": 2,
+               "FOV": 90  
+            },
+            "StartRot": {   
+               "x": 15,
+               "y": -15,
+               "z": 0
+            },
+            "StartHeadOffset": {   
+               "x": 0,
+               "y": 0,
+               "z": 0
+            },
+            "EndPos": {  
+               "x": 2,
+               "y": 1,
+               "z": 2,
+               "FOV": 90      
+            },
+            "EndRot": {           
+               "x": 15,
+               "y": -40,
+               "z": 0
+            },
+            "EndHeadOffset": {     
+               "x": 0,
+               "y": 0,
+               "z": 0
+            },
+            "TurnToHead": true, 
+            "TurnToHeadHorizontal": false,
+            "Duration": 2,
+            "Delay": 0,
+            "EaseTransition": false
+         }
+         ]
+      },
+    }
+```
+
+
+
+Upon pressing the A button on your VR controllers, this will set Start the Camera script motion
+
+
+
+[[/readme/camerademo.gif|Camera Script Motion]]
