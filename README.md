@@ -441,4 +441,4 @@ Upon pressing the A button on your VR controllers, this will set Start the Camer
 
 
 
-[[/readme/camerademo.gif|Camera Script Motion]]
+![Camera Script Motion](/readme/camerademo.gif)
