@@ -250,6 +250,7 @@ function startCameraMotion(motion_key, index = 0){
     return;
   }
   // we linearly interpolate the position and rotation
+clearInterval(cameraMotionTimer[motion_key])
   let start_time = Date.now()
   cameraMotionTimer[motion_key] = setInterval(() => {
     let elapsed_time = Date.now() - start_time
@@ -301,7 +302,7 @@ function startCameraMotion(motion_key, index = 0){
 function sendCameraPosition(x,y,z,rx,ry,rz,fov){
   var dport = port
   if (CONFIG.send_blendshape_to_performer) dport = performer_port
-  console.log("Sending camera position", x,y,z,rx,ry,rz,fov)
+
   quaternion = rotationToQuaternion(rx,ry,rz)
   udpPort.send({
       address: "/VMC/Ext/Cam",
@@ -485,7 +486,7 @@ function checkControllerIO(){
                     }}
 
           //serealized hash to json
-          //console.log("Current Camera State", JSON.stringify(hash) )
+          console.log("Current Camera State", JSON.stringify(hash) )
          }else{
           start_transition(blendShape);
          }
