@@ -4,7 +4,7 @@
    "send_host": "127.0.0.1",
    "send_port": 39539,
    "performer_port": 39540,
-   "send_blendshape_to_performer": false,
+   "send_blendshape_to_performer": true,
    "debug_controller": false,
    "animation_fps": 30,
    "blend_shapes": [
@@ -74,24 +74,183 @@
           "animation_type":"oneoff"
        },
        {
-         "name":"Happy",
-         "toggle":true,
-         "intercept":true,
+         "name":"SampleMovmentScript",
          "initial_value":0,
          "target_value":1,
          "trigger_type":"controller",
          "trigger_conditions":[
             {
                "button_name":"RightPositionThumbStick",
-               "max_held": 250,
                "value": "right"
             }
-         ],
-         "transition_type":"linear",
-         "transition_duration":200,
-         "animation_type":"oneoff"
+         ]
         }
-
-    ]
+    ],
+   "camera_motions": {
+      "SampleMovmentScript": {
+         "Movements": [
+            {
+               "HeadBone": "Head",
+               "StartPos": {
+                  "x": 2,
+                  "y": 1.75,
+                  "z": 2,
+                  "FOV": 90  
+               },
+               "StartRot": {   
+                  "x": 15,
+                  "y": -15,
+                  "z": 0
+               },
+               "StartHeadOffset": {   
+                  "x": 0,
+                  "y": 0,
+                  "z": 0
+               },
+               "EndPos": {
+                  "x": 2,
+                  "y": 1.75,
+                  "z": -2,
+                  "FOV": 90   
+               },
+               "EndRot": {           
+                  "x": 15,
+                  "y": -40,
+                  "z": 0
+               },
+               "EndHeadOffset": {     
+                  "x": 0,
+                  "y": 0,
+                  "z": 0
+               },
+               "TurnToHead": true, 
+               "TurnToHeadHorizontal": false,
+               "Duration": 2,
+               "Delay": 0,
+               "EaseTransition": false
+            },
+            {
+               "HeadBone": "Head",
+               "StartPos": {
+                  "x": 2,
+                  "y": 1.75,
+                  "z": -2,
+                  "FOV": 90  
+               },
+               "StartRot": {   
+                  "x": 15,
+                  "y": -15,
+                  "z": 0
+               },
+               "StartHeadOffset": {   
+                  "x": 0,
+                  "y": 0,
+                  "z": 0
+               },
+               "EndPos": {  
+                  "x": -2,
+                  "y": 1,
+                  "z": -2,
+                  "FOV": 90      
+               },
+               "EndRot": {           
+                  "x": 15,
+                  "y": -40,
+                  "z": 0
+               },
+               "EndHeadOffset": {     
+                  "x": 0,
+                  "y": 0,
+                  "z": 0
+               },
+               "TurnToHead": true, 
+               "TurnToHeadHorizontal": false,
+               "Duration": 2,
+               "Delay": 0,
+               "EaseTransition": false
+            },
+            {
+               "HeadBone": "Head",
+               "StartPos": {
+                  "x": -2,
+                  "y": 1,
+                  "z": -2,
+                  "FOV": 90  
+               },
+               "StartRot": {   
+                  "x": 15,
+                  "y": -15,
+                  "z": 0
+               },
+               "StartHeadOffset": {   
+                  "x": 0,
+                  "y": 0,
+                  "z": 0
+               },
+               "EndPos": {  
+                  "x": -2,
+                  "y": 1,
+                  "z": 2,
+                  "FOV": 90      
+               },
+               "EndRot": {           
+                  "x": 15,
+                  "y": -40,
+                  "z": 0
+               },
+               "EndHeadOffset": {     
+                  "x": 0,
+                  "y": 0,
+                  "z": 0
+               },
+               "TurnToHead": true, 
+               "TurnToHeadHorizontal": false,
+               "Duration": 2,
+               "Delay": 0,
+               "EaseTransition": false
+            },
+            {
+               "HeadBone": "Head",
+               "StartPos": {
+                  "x": -2,
+                  "y": 1,
+                  "z": 2,
+                  "FOV": 90  
+               },
+               "StartRot": {   
+                  "x": 15,
+                  "y": -15,
+                  "z": 0
+               },
+               "StartHeadOffset": {   
+                  "x": 0,
+                  "y": 0,
+                  "z": 0
+               },
+               "EndPos": {  
+                  "x": 2,
+                  "y": 1,
+                  "z": 2,
+                  "FOV": 90      
+               },
+               "EndRot": {           
+                  "x": 15,
+                  "y": -40,
+                  "z": 0
+               },
+               "EndHeadOffset": {     
+                  "x": 0,
+                  "y": 0,
+                  "z": 0
+               },
+               "TurnToHead": true, 
+               "TurnToHeadHorizontal": false,
+               "Duration": 2,
+               "Delay": 0,
+               "EaseTransition": false
+            }
+         ]
+      }
+   }
 }
 

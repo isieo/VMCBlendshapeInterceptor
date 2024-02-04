@@ -1,7 +1,11 @@
 const fs = require('fs');
 const osc = require("osc")
+const CONFIG_FILE_NAME = process.argv[2] || 'config.json'
 
-const CONFIG = JSON.parse(fs.readFileSync('config.json', 'utf8'));
+console.log("Using " + CONFIG_FILE_NAME)
+
+
+const CONFIG = JSON.parse(fs.readFileSync(CONFIG_FILE_NAME, 'utf8'));
 
 var udpPort = new osc.UDPPort({
   localAddress: CONFIG.local_address,
@@ -20,15 +24,21 @@ const performer_port = CONFIG.performer_port
 const animationFPS = CONFIG.animation_fps
 const DEBUG_BUTTONS = CONFIG.debug_controller
 
+
+var cameraMotions = CONFIG.camera_motions
+
 var blendShapeConfig = CONFIG.blend_shapes
+
+var cameraState = {x: 0, y: 0, z: -1, rx: 0, ry: 0, rz: 0, fov: 90}
 
 var blendShapeState = {}
 
 var controllerButtons = {}
 
+var bonePositions = {}
+
 udpPort.on("message", function (oscMsg, timeTag, info) {
   if (oscMsg.address == "/VMC/Ext/Con") {
-    
     let side = oscMsg.args[2].value == 1 ? "Left" : "Right"
     if (DEBUG_BUTTONS) {
       console.log(side+oscMsg.args[1].value, oscMsg)
@@ -40,10 +50,13 @@ udpPort.on("message", function (oscMsg, timeTag, info) {
     }else{
       controllerButtons[side+oscMsg.args[1].value] = { value: oscMsg.args[0].value, is_dpad: false, time: Date.now()}
     }
-    
+  }else if (oscMsg.address == "/VMC/Ext/Key") {
+    if (DEBUG_BUTTONS) {
+      console.log('Key'+oscMsg.args[1].value, oscMsg)
+    }
+    controllerButtons['Key'+oscMsg.args[1].value] = { value: oscMsg.args[0].value, is_dpad: false, time: Date.now()}
   }else if (oscMsg.address == "/VMC/Ext/Blend/Val") {
     let skip = false
-
     blendShapeConfig.forEach((blendShape) => {
       if (blendShape.name == oscMsg.args[0].value && blendShape.intercept) {
         skip = true
@@ -56,10 +69,34 @@ udpPort.on("message", function (oscMsg, timeTag, info) {
     if (skip) {
       return;
     }
+  }else if (oscMsg.address == "/VMC/Ext/Bone/Pos") {
+    bonePositions[oscMsg.args[0].value] = { x: oscMsg.args[1].value, y: oscMsg.args[2].value, z: oscMsg.args[3].value }
+  }else if (oscMsg.address == "/VMC/Ext/Cam") {
+    let rot = quaternionToEuler(oscMsg.args[4].value,oscMsg.args[5].value,oscMsg.args[6].value,oscMsg.args[7].value)
+    cameraState = { x: oscMsg.args[1].value, y: oscMsg.args[2].value, z: oscMsg.args[3].value, rx: rot.x, ry: rot.y, rz: rot.z, fov: oscMsg.args[8].value }
   }
   udpPort.send(oscMsg, host , port)
 });
 
+
+// quartetion to euler
+function quaternionToEuler(x, y, z, w) {
+  let t0 = +2.0 * (w * x + y * z);
+  let t1 = +1.0 - 2.0 * (x * x + y * y);
+  let X = Math.atan2(t0, t1);
+  let t2 = +2.0 * (w * y - z * x);
+  t2 = t2 > 1.0 ? 1.0 : t2;
+  t2 = t2 < -1.0 ? -1.0 : t2;
+  let Y = Math.asin(t2);
+  let t3 = +2.0 * (w * z + x * y);
+  let t4 = +1.0 - 2.0 * (y * y + z * z);
+  let Z = Math.atan2(t3, t4);
+  return {
+    x: X,
+    y: Y,
+    z: Z
+  };
+}
 
 function bezier(t, p0, p1, p2, p3) {
   return (1-t)*(1-t)*(1-t)*p0 + 3*(1-t)*(1-t)*t*p1 + 3*(1-t)*t*t*p2 + t*t*t*p3;
@@ -145,6 +182,170 @@ function update_blend_shapes() {
 
 }
 
+function rotationToQuaternion(x,y,z){
+  let qx = Math.sin(x/2) * Math.cos(y/2) * Math.cos(z/2) - Math.cos(x/2) * Math.sin(y/2) * Math.sin(z/2);
+  let qy = Math.cos(x/2) * Math.sin(y/2) * Math.cos(z/2) + Math.sin(x/2) * Math.cos(y/2) * Math.sin(z/2);
+  let qz = Math.cos(x/2) * Math.cos(y/2) * Math.sin(z/2) - Math.sin(x/2) * Math.sin(y/2) * Math.cos(z/2);
+  let qw = Math.cos(x/2) * Math.cos(y/2) * Math.cos(z/2) + Math.sin(x/2) * Math.sin(y/2) * Math.sin(z/2);
+  return [qx,qy,qz,qw]
+}
+
+
+// this is a 3d  lookat function accepts x,y,z of the camera and the position x,y,z of target
+// it should return the x,y,z rotation of the camera
+function lookAt(x, y, z, tx, ty, tz) {
+  // Calculate the direction vector from the camera to the target
+  const dx = tx - x;
+  const dy = ty - y;
+  const dz = tz - z;
+
+  // Calculate the distance between the camera and the target
+  const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+  // Normalize the direction vector to get a unit vector
+  const directionX = dx / distance;
+  const directionY = dy / distance;
+  const directionZ = dz / distance;
+
+  // Calculate the camera's forward vector
+  const forwardX = directionX;
+  const forwardY = directionY;
+  const forwardZ = directionZ;
+
+  // Calculate the camera's up vector (assuming up is in the positive Y-axis)
+  const upX = 0;
+  const upY = 1;
+  const upZ = 0;
+
+  // Calculate the camera's right vector using cross product
+  const rightX = upY * forwardZ - upZ * forwardY;
+  const rightY = upZ * forwardX - upX * forwardZ;
+  const rightZ = upX * forwardY - upY * forwardX;
+
+  // Calculate the camera's pitch (rotation around the X-axis)
+  const pitch = Math.asin(-forwardY);
+
+  // Calculate the camera's yaw (rotation around the Y-axis)
+  const yaw = Math.atan2(forwardX, forwardZ);
+
+  // Calculate the camera's roll (rotation around the Z-axis)
+  const roll = Math.atan2(rightY, upY);
+
+  return {
+    x: pitch,
+    y: yaw,
+    z: roll
+  };
+}
+
+// EaseBezier is the bezier curve used for the transition default value is  [0.34,0.1,0.34,1]
+let cameraInMotion = false
+let cameraMotionTimer = {}
+function startCameraMotion(motion_key, index = 0){
+  if (cameraInMotion && index == 0) return; // if the camera is already in motion and the index is 0, we ignore the command
+  if (cameraMotions[motion_key] == undefined) return;
+  let motion = cameraMotions[motion_key]
+  if (motion.Movements[index] == undefined) {
+    cameraInMotion = false
+    return;
+  }
+  // we linearly interpolate the position and rotation
+  let start_time = Date.now()
+  cameraMotionTimer[motion_key] = setInterval(() => {
+    let elapsed_time = Date.now() - start_time
+    let t = Math.min(1, elapsed_time / (motion.Movements[0].Duration * 1000))
+    let p = motion.Movements[index]
+    if (p.EaseTransition){
+      if (p.EaseBezier == undefined) p.EaseBezier = [0.34,0.1,0.34,1]
+      t = bezier(t, p.EaseBezier[0], p.EaseBezier[1], p.EaseBezier[2], p.EaseBezier[3])
+    }
+  
+    if (p.TurnToHead){
+      let headPos = bonePositions[p.HeadBone]
+      if (headPos == undefined) return
+      let x = (1 - t) * p.StartPos.x + t * p.EndPos.x
+      let y = (1 - t) * p.StartPos.y + t * p.EndPos.y
+      let z = (1 - t) * p.StartPos.z + t * p.EndPos.z
+      let fov = (1 - t) * p.StartPos.FOV + t * p.EndPos.FOV
+      headPos = {
+        x: headPos.x + p.StartHeadOffset.x,
+        y: headPos.y + p.StartHeadOffset.y,
+        z: headPos.z + p.StartHeadOffset.z
+      }
+      let lookAtRot = lookAt(x,y,z,headPos.x, headPos.y, headPos.z)
+      sendCameraPosition(x, y, z, lookAtRot.x, lookAtRot.y, lookAtRot.z, fov)
+    }else{
+      let x = (1 - t) * p.StartPos.x + t * p.EndPos.x
+      let y = (1 - t) * p.StartPos.y + t * p.EndPos.y
+      let z = (1 - t) * p.StartPos.z + t * p.EndPos.z
+      let rx = (1 - t) * p.StartRot.x + t * p.EndRot.x
+      let ry = (1 - t) * p.StartRot.y + t * p.EndRot.y
+      let rz = (1 - t) * p.StartRot.z + t * p.EndRot.z
+      let fov = (1 - t) * p.StartPos.FOV + t * p.EndPos.FOV
+      sendCameraPosition(x, y, z, rx, ry, rz, fov)
+    }
+    if (t >= 1) {
+      clearInterval(cameraMotionTimer[motion_key])
+      setTimeout(() => {
+        startCameraMotion(motion_key, index + 1)
+      }, p.Delay + 1)
+    }
+  })
+}
+
+// Reference:
+// /VMC/Ext/Cam (string){Camera} (float){p.x} (float){p.y} (float){p.z} (float){q.x} (float){q.y} (float){q.z} (float){q.w} (float){fov} 
+// p=Position
+// q=Quaternion
+//
+function sendCameraPosition(x,y,z,rx,ry,rz,fov){
+  var dport = port
+  if (CONFIG.send_blendshape_to_performer) dport = performer_port
+  console.log("Sending camera position", x,y,z,rx,ry,rz,fov)
+  quaternion = rotationToQuaternion(rx,ry,rz)
+  udpPort.send({
+      address: "/VMC/Ext/Cam",
+      args: [
+          {
+              type: "s",
+              value: "Camera"
+          },
+          {
+              type: "f",
+              value: x
+          },
+          {
+              type: "f",
+              value: y
+          },
+          {
+              type: "f",
+              value: z
+          },
+          {
+              type: "f",
+              value: quaternion[0]
+          },
+          {
+              type: "f",
+              value: quaternion[1]
+          },
+          {
+              type: "f",
+              value: quaternion[2]
+          },
+          {
+              type: "f",
+              value: quaternion[3]
+          },
+          {
+              type: "f",
+              value: fov
+          }
+      ]
+  }, host, dport);
+}
+
 function sendBlendShape(shape, val, commit = false){
   var dport = port
   if (CONFIG.send_blendshape_to_performer) dport = performer_port
@@ -196,10 +397,50 @@ udpPort.on("ready", function () {
     startBlendshapeTimer()
 
     if (blendShape.trigger_type == "startup") {
-      start_transition(blendShape)
+      if (cameraMotions[blendShape.name]) {
+        console.log("Startup camera")
+        setTimeout(()=>{startCameraMotion(blendShape.name)},1000)
+       }else{
+        start_transition(blendShape);
+       }
     }
   })
 });
+
+function moveCameraForward(step=0.5){
+  let headPos = bonePositions["Head"]
+  let x = cameraState.x - headPos.x
+  let y = cameraState.y - headPos.y
+  let z = cameraState.z - headPos.z
+  let distance = Math.sqrt(x*x + y*y + z*z)
+  let dx = x / distance * step
+  let dy = y / distance * step
+  let dz = z / distance * step
+  sendCameraPosition(cameraState.x + dx, cameraState.y + dy, cameraState.z + dz, cameraState.rx, cameraState.ry, cameraState.rz, cameraState.fov)
+}
+
+function moveCameraBackward(step=0.5){
+  let headPos = bonePositions["Head"]
+  let x = cameraState.x - headPos.x
+  let y = cameraState.y - headPos.y
+  let z = cameraState.z - headPos.z
+  let distance = Math.sqrt(x*x + y*y + z*z)
+  let dx = x / distance * step
+  let dy = y / distance * step
+  let dz = z / distance * step
+  sendCameraPosition(cameraState.x - dx, cameraState.y - dy, cameraState.z - dz, cameraState.rx, cameraState.ry, cameraState.rz, cameraState.fov)
+}
+
+function lookAtHead(){
+  console.log(bonePositions["Head"])
+  let headPos = bonePositions["Head"]
+  let x = cameraState.x
+  let y = cameraState.y
+  let z = cameraState.z
+  let lookAtRot = lookAt(cameraState.x, cameraState.y, cameraState.z, headPos.x, headPos.y, headPos.z)
+  sendCameraPosition(cameraState.x, cameraState.y, cameraState.z, lookAtRot.x, lookAtRot.y, lookAtRot.z, cameraState.fov)
+}
+
 
 function startControllerTimer(){
 	setTimeout(checkControllerIO,100)
@@ -222,7 +463,32 @@ function checkControllerIO(){
       if (match){
          lastKeyCombiDelay[blendShape.name] = Date.now()
          console.log("Triggering " + blendShape.name)
-	       start_transition(blendShape);
+         if (cameraMotions[blendShape.name]) {
+          setTimeout(()=>{startCameraMotion(blendShape.name)},1)
+        }else if (blendShape.name == "moveCameraForward"){
+          moveCameraForward()
+         }else if (blendShape.name == "moveCameraBackward"){
+          moveCameraBackward()
+         }else if (blendShape.name == "lookAtHead"){
+          lookAtHead()
+         }else if (blendShape.name == "CameraCoordinates"){
+          hash = {"Pos": {
+                        "x": cameraState.x,
+                        "y":  cameraState.y,
+                        "z":  cameraState.z,
+                        "FOV": cameraState.fov
+                    },
+                    "Rot": {   
+                        "x": cameraState.rx,
+                        "y": cameraState.ry,
+                        "z": cameraState.rz,
+                    }}
+
+          //serealized hash to json
+          //console.log("Current Camera State", JSON.stringify(hash) )
+         }else{
+          start_transition(blendShape);
+         }
       }
     })
     startControllerTimer()
