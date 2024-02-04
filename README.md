@@ -1,5 +1,7 @@
 # VMC Blendshape Interceptor
 This script intercepts Virtual Motion Capture's Protocol and allow you to animate or inject blenshapes.
+I made this script to animate my company's mascott, iniitally the plan was to write this in unity but running vseeface alone already takes up most of the resources in the company's computer..
+so i made this in nodejs, 
 
 # Assumption and rationale
 I am assuming that you will be using Virtual Motion Capture(VMC) - i have only tested with VMC
