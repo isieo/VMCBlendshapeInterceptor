@@ -406,7 +406,6 @@ function startCameraMotion(motion_key, index = 0){
   
     if (p.TurnToHead){
       let headPos = calculateBonePosition(p.HeadBone)
-      console.log(headPos)
       if (headPos == undefined) return
       let x = (1 - t) * p.StartPos.x + t * p.EndPos.x
       let y = (1 - t) * p.StartPos.y + t * p.EndPos.y
@@ -547,7 +546,6 @@ udpPort.on("ready", function () {
 
     if (blendShape.trigger_type == "startup") {
       if (cameraMotions[blendShape.name]) {
-        console.log("Startup camera")
         setTimeout(()=>{startCameraMotion(blendShape.name)},1000)
        }else{
         start_transition(blendShape);
