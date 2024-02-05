@@ -37,6 +37,8 @@ var controllerButtons = {}
 
 var bonePositions = {}
 
+var worldScale = {x: 1, y: 1,z :1}
+
 udpPort.on("message", function (oscMsg, timeTag, info) {
   if (oscMsg.address == "/VMC/Ext/Con") {
     let side = oscMsg.args[2].value == 1 ? "Left" : "Right"
@@ -69,8 +71,15 @@ udpPort.on("message", function (oscMsg, timeTag, info) {
     if (skip) {
       return;
     }
+  }else if (oscMsg.address == "/VMC/Ext/Root/Pos") {
+    // /VMC/Ext/Root/Pos (string){name} (float){p.x} (float){p.y} (float){p.z} (float){q.x} (float){q.y} (float){q.z} (float){q.w} (float){s.x} (float){s.y} (float){s.z}
+    //rootPosition = { x: oscMsg.args[1].value, y: oscMsg.args[2].value, z: oscMsg.args[3].value,rx: oscMsg.args[4].value, ry: oscMsg.args[5].value, rz: oscMsg.args[6].value, rw: oscMsg.args[7].value }
+    bonePositions["Root"] = { x: oscMsg.args[1].value, y: oscMsg.args[2].value, z: oscMsg.args[3].value,rx: oscMsg.args[4].value, ry: oscMsg.args[5].value, rz: oscMsg.args[6].value, rw: oscMsg.args[7].value }
+    worldScale = {x: oscMsg.args[8].value, y: oscMsg.args[9].value, z: oscMsg.args[10].value}
   }else if (oscMsg.address == "/VMC/Ext/Bone/Pos") {
-    bonePositions[oscMsg.args[0].value] = { x: oscMsg.args[1].value, y: oscMsg.args[2].value, z: oscMsg.args[3].value }
+    // /VMC/Ext/Bone/Pos (string){name} (float){p.x} (float){p.y} (float){p.z} (float){q.x} (float){q.y} (float){q.z} (float){q.w}  
+    bonePositions[oscMsg.args[0].value] = { x: oscMsg.args[1].value, y: oscMsg.args[2].value, z: oscMsg.args[3].value,rx: oscMsg.args[4].value, ry: oscMsg.args[5].value, rz: oscMsg.args[6].value, rw: oscMsg.args[7].value }
+  
   }else if (oscMsg.address == "/VMC/Ext/Cam") {
     let rot = quaternionToEuler(oscMsg.args[4].value,oscMsg.args[5].value,oscMsg.args[6].value,oscMsg.args[7].value)
     cameraState = { x: oscMsg.args[1].value, y: oscMsg.args[2].value, z: oscMsg.args[3].value, rx: rot.x, ry: rot.y, rz: rot.z, fov: oscMsg.args[8].value }
@@ -78,6 +87,119 @@ udpPort.on("message", function (oscMsg, timeTag, info) {
   udpPort.send(oscMsg, host , port)
 });
 
+
+// Unity HumanBodyBones hirarchy
+const boneHirarchy = {
+  "Hips": "Root",
+  "LeftUpperLeg": "Hips",
+  "RightUpperLeg": "Hips",
+  "LeftLowerLeg": "LeftUpperLeg",
+  "RightLowerLeg": "RightUpperLeg",
+  "LeftFoot": "LeftLowerLeg",
+  "RightFoot": "RightLowerLeg",
+  "Spine": "Hips",
+  "Chest": "Spine",
+  "Neck": "Chest",
+  "Head": "Neck",
+  "LeftShoulder": "Chest",
+  "RightShoulder": "Chest",
+  "LeftUpperArm": "LeftShoulder",
+  "RightUpperArm": "RightShoulder",
+  "LeftLowerArm": "LeftUpperArm",
+  "RightLowerArm": "RightUpperArm",
+  "LeftHand": "LeftLowerArm",
+  "RightHand": "RightLowerArm",
+  "LeftToes": "LeftFoot",
+  "RightToes": "RightFoot",
+  "LeftEye": "Head",
+  "RightEye": "Head",
+  "LeftThumbProximal": "LeftHand",
+  "LeftThumbIntermediate": "LeftThumbProximal",
+  "LeftThumbDistal": "LeftThumbIntermediate",
+  "LeftIndexProximal": "LeftHand",
+  "LeftIndexIntermediate": "LeftIndexProximal",
+  "LeftIndexDistal": "LeftIndexIntermediate",
+  "LeftMiddleProximal": "LeftHand",
+  "LeftMiddleIntermediate": "LeftMiddleProximal",
+  "LeftMiddleDistal": "LeftMiddleIntermediate",
+  "LeftRingProximal": "LeftHand",
+  "LeftRingIntermediate": "LeftRingProximal",
+  "LeftRingDistal": "LeftRingIntermediate",
+  "LeftLittleProximal": "LeftHand",
+  "LeftLittleIntermediate": "LeftLittleProximal",
+  "LeftLittleDistal": "LeftLittleIntermediate",
+  "RightThumbProximal": "RightHand",
+  "RightThumbIntermediate": "RightThumbProximal",
+  "RightThumbDistal": "RightThumbIntermediate",
+  "RightIndexProximal": "RightHand",
+  "RightIndexIntermediate": "RightIndexProximal",
+  "RightIndexDistal": "RightIndexIntermediate",
+  "RightMiddleProximal": "RightHand",
+  "RightLittleProximal": "RightHand",
+  "RightMiddleIntermediate": "RightMiddleProximal",
+  "RightMiddleDistal": "RightMiddleIntermediate",
+  "RightRingProximal": "RightHand",
+  "RightRingIntermediate": "RightRingProximal",
+  "RightRingDistal": "RightRingIntermediate",
+  "RightLittleProximal": "RightHand",
+  "RightLittleIntermediate": "RightLittleProximal",
+  "RightLittleDistal": "RightLittleIntermediate",
+  "UpperChest": "Chest"
+}
+
+/* 
+Calculate the bone position in world space based IK and FK of the boneHirarchy
+the current bone position is the base position of the bone and the child bone's position is the end position of the current bone
+the position of the bones are affected by the rotation of the parent bone
+*/
+function calculateBonePosition(boneName) {
+  let finalQuat = [0,0,0,1]
+  let finalPos = [0,0,0]
+  let currentBone = boneName
+  while (currentBone != "Root") {
+    let bone = bonePositions[currentBone]
+    let parentBone = boneHirarchy[currentBone]
+    let parentBonePos = bonePositions[parentBone]
+    let parentBoneQuat = [parentBonePos.rx, parentBonePos.ry, parentBonePos.rz, parentBonePos.rw]
+    let boneQuat = [bone.rx, bone.ry, bone.rz, bone.rw]
+    let bonePos = [bone.x, bone.y, bone.z]
+    let newQuat = quaternionMultiply(parentBoneQuat, boneQuat)
+    let newPos = quaternionRotateVector(parentBoneQuat, bonePos)
+    newPos = [newPos[0] + parentBonePos.x, newPos[1] + parentBonePos.y, newPos[2] + parentBonePos.z]
+    finalQuat = quaternionMultiply(finalQuat, newQuat)
+    finalPos = [finalPos[0] + newPos[0], finalPos[1] + newPos[1], finalPos[2] + newPos[2]]
+    currentBone = parentBone
+  }
+  finalPos = [finalPos[0] * worldScale.x, finalPos[1] * worldScale.y, finalPos[2] * worldScale.z]
+
+  return {x: finalPos[0], y: finalPos[1], z: finalPos[2]}
+}
+
+function quaternionMultiply(q1, q2) {
+  let w1 = q1[3], x1 = q1[0], y1 = q1[1], z1 = q1[2]
+  let w2 = q2[3], x2 = q2[0], y2 = q2[1], z2 = q2[2]
+  return [
+    x1 * w2 + y1 * z2 - z1 * y2 + w1 * x2,
+    -x1 * z2 + y1 * w2 + z1 * x2 + w1 * y2,
+    x1 * y2 - y1 * x2 + z1 * w2 + w1 * z2,
+    w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
+  ]
+}
+
+
+function quaternionRotateVector(quat, vec) {
+  let x = vec[0], y = vec[1], z = vec[2]
+  let qx = quat[0], qy = quat[1], qz = quat[2], qw = quat[3]
+  let ix = qw * x + qy * z - qz * y
+  let iy = qw * y + qz * x - qx * z
+  let iz = qw * z + qx * y - qy * x
+  let iw = -qx * x - qy * y - qz * z
+  return [
+    ix * qw + iw * -qx + iy * -qz - iz * -qy,
+    iy * qw + iw * -qy + iz * -qx - ix * -qz,
+    iz * qw + iw * -qz + ix * -qy - iy * -qx
+  ]
+}
 
 // quartetion to euler
 function quaternionToEuler(x, y, z, w) {
@@ -95,6 +217,24 @@ function quaternionToEuler(x, y, z, w) {
     x: X,
     y: Y,
     z: Z
+  };
+}
+
+// rotation in dregrees
+function eulerToDegree(x, y, z) {
+  return {
+    x: x * 180 / Math.PI,
+    y: y * 180 / Math.PI,
+    z: z * 180 / Math.PI
+  };
+}
+
+// rotation in radians
+function degreeToEuler(x, y, z) {
+  return {
+    x: x * Math.PI / 180,
+    y: y * Math.PI / 180,
+    z: z * Math.PI / 180
   };
 }
 
@@ -239,20 +379,23 @@ function lookAt(x, y, z, tx, ty, tz) {
 }
 
 // EaseBezier is the bezier curve used for the transition default value is  [0.34,0.1,0.34,1]
-let cameraInMotion = false
-let cameraMotionTimer = {}
+let cameraMotionTimer = 0
+let cameraDelayTimer = 0
 function startCameraMotion(motion_key, index = 0){
-  if (cameraInMotion && index == 0) return; // if the camera is already in motion and the index is 0, we ignore the command
   if (cameraMotions[motion_key] == undefined) return;
   let motion = cameraMotions[motion_key]
   if (motion.Movements[index] == undefined) {
-    cameraInMotion = false
-    return;
+    if (motion.Loop) {
+      index = 0
+    }else{
+      return
+    }
   }
   // we linearly interpolate the position and rotation
-clearInterval(cameraMotionTimer[motion_key])
+  clearInterval(cameraMotionTimer)
+  clearTimeout(cameraDelayTimer)
   let start_time = Date.now()
-  cameraMotionTimer[motion_key] = setInterval(() => {
+  cameraMotionTimer = setInterval(() => {
     let elapsed_time = Date.now() - start_time
     let t = Math.min(1, elapsed_time / (motion.Movements[0].Duration * 1000))
     let p = motion.Movements[index]
@@ -262,7 +405,8 @@ clearInterval(cameraMotionTimer[motion_key])
     }
   
     if (p.TurnToHead){
-      let headPos = bonePositions[p.HeadBone]
+      let headPos = calculateBonePosition(p.HeadBone)
+      console.log(headPos)
       if (headPos == undefined) return
       let x = (1 - t) * p.StartPos.x + t * p.EndPos.x
       let y = (1 - t) * p.StartPos.y + t * p.EndPos.y
@@ -279,17 +423,21 @@ clearInterval(cameraMotionTimer[motion_key])
       let x = (1 - t) * p.StartPos.x + t * p.EndPos.x
       let y = (1 - t) * p.StartPos.y + t * p.EndPos.y
       let z = (1 - t) * p.StartPos.z + t * p.EndPos.z
-      let rx = (1 - t) * p.StartRot.x + t * p.EndRot.x
-      let ry = (1 - t) * p.StartRot.y + t * p.EndRot.y
-      let rz = (1 - t) * p.StartRot.z + t * p.EndRot.z
+
+      let startRot = degreeToEuler(p.StartRot.x, p.StartRot.y, p.StartRot.z)
+      let endRot = degreeToEuler(p.EndRot.x, p.EndRot.y, p.EndRot.z)
+
+      let rx = (1 - t) * startRot.x + t * endRot.x
+      let ry = (1 - t) * startRot.y + t * endRot.y
+      let rz = (1 - t) * startRot.z + t * endRot.z
       let fov = (1 - t) * p.StartPos.FOV + t * p.EndPos.FOV
       sendCameraPosition(x, y, z, rx, ry, rz, fov)
     }
     if (t >= 1) {
-      clearInterval(cameraMotionTimer[motion_key])
-      setTimeout(() => {
+      clearInterval(cameraMotionTimer)
+      cameraDelayTimer = setTimeout(() => {
         startCameraMotion(motion_key, index + 1)
-      }, p.Delay + 1)
+      }, (p.Delay > 0 ? p.Delay * 1000 : 0 ) + 1)
     }
   })
 }
@@ -433,8 +581,7 @@ function moveCameraBackward(step=0.5){
 }
 
 function lookAtHead(){
-  console.log(bonePositions["Head"])
-  let headPos = bonePositions["Head"]
+  let headPos = calculateBonePosition("Head")
   let x = cameraState.x
   let y = cameraState.y
   let z = cameraState.z
@@ -473,6 +620,7 @@ function checkControllerIO(){
          }else if (blendShape.name == "lookAtHead"){
           lookAtHead()
          }else if (blendShape.name == "CameraCoordinates"){
+          let rotation = eulerToDegree(cameraState.rx, cameraState.ry, cameraState.rz)
           hash = {"Pos": {
                         "x": cameraState.x,
                         "y":  cameraState.y,
@@ -480,9 +628,9 @@ function checkControllerIO(){
                         "FOV": cameraState.fov
                     },
                     "Rot": {   
-                        "x": cameraState.rx,
-                        "y": cameraState.ry,
-                        "z": cameraState.rz,
+                        "x": rotation.x,
+                        "y": rotation.y,
+                        "z": rotation.z
                     }}
 
           //serealized hash to json

@@ -79,20 +79,26 @@ Blendshape config
 
 
 Camera Config
-The Camera Config is based on Beatsaber's CameraPlus to make it easy for someone to use existing movement scripts, only additional thing to add is the "name" key
+The Camera Config is based on Beatsaber's CameraPlus to make it easy for someone to use existing movement scripts, please note that there are some minor differences
 See: https://github.com/Snow1226/CameraPlus/wiki/MovementScript
 To get camera coordinates, you can set "CameraCoordinates" as one of the blendshape and assign a key on it.
 
 ```
 "camera_controls": {
    "MovementScript1": {  // Name of the movment script, use this in place of a Blendshape name in the Blendshape config to activate, values will be ignored in the blendshape config
-      "HeadBone": "Head",           // Name Of the Head Bone, you can change this to other body parts to override head
+      "Loop": true,                 // restart from begining when all motion has been performed
       "TurnToHeadUseCameraSetting": false,
                                     //"TurnToHeadUseCameraSetting"
                                                          : If the setting to point the camera at the HMD is true, match it with the camera body.  
                                                             If false, use the value in the Movements section.  
       "Movements": [                 //"Movements"        : Position description section of the moving camera.
          {
+            "HeadBone": "Head",           // Name Of the Head Bone, you can change this to other body parts to override Head
+                                          // Possible values are: "Hips", "LeftUpperLeg", "RightUpperLeg", "LeftLowerLeg", "RightLowerLeg", "LeftFoot", "RightFoot", "Spine", "Chest", "Neck", "Head", "LeftShoulder", "RightShoulder", "LeftUpperArm", "RightUpperArm", "LeftLowerArm",
+                                          // "RightLowerArm", "LeftHand", "RightHand", "LeftToes", "RightToes", "LeftEye", "RightEye", "LeftThumbProximal", "LeftThumbIntermediate", "LeftThumbDistal", "LeftIndexProximal", "LeftIndexIntermediate", "LeftIndexDistal", "LeftMiddleProximal",
+                                          // "LeftMiddleIntermediate", "LeftMiddleDistal", "LeftRingProximal", "LeftRingIntermediate", "LeftRingDistal", "LeftLittleProximal", "LeftLittleIntermediate", "LeftLittleDistal", "RightThumbProximal", "RightThumbIntermediate", "RightThumbDistal"
+                                          // "RightIndexProximal", "RightIndexIntermediate", "RightIndexDistal", "RightMiddleProximal", "RightLittleProximal", "RightMiddleIntermediate", "RightMiddleDistal", "RightRingProximal", "RightRingIntermediate", "RightRingDistal", 
+                                          // "RightLittleIntermediate", "RightLittleDistal", "UpperChest"
             "StartPos": {              //"StartPos"         : Camera start position (the center of the play area is 0,0,0).
                   "x": 2,
                   "y": 1.75,
