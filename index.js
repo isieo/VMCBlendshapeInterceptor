@@ -42,14 +42,18 @@ var worldScale = {x: 1, y: 1,z :1}
 udpPort.on("message", function (oscMsg, timeTag, info) {
   if (oscMsg.address == "/VMC/Ext/Con") {
     let side = oscMsg.args[2].value == 1 ? "Left" : "Right"
-    if (DEBUG_BUTTONS) {
-      console.log(side+oscMsg.args[1].value, oscMsg)
-    }
+
     
     if (oscMsg.args[4].value > 0) { // if is dpad
       let dpadDirection = getDpadDirection(oscMsg.args[5].value, oscMsg.args[6].value)
+    if (DEBUG_BUTTONS) {
+      console.log(side+oscMsg.args[1].value, dpadDirection)
+    }
         controllerButtons[side+oscMsg.args[1].value] = { value: dpadDirection, is_dpad: true, time: Date.now() }
     }else{
+    if (DEBUG_BUTTONS) {
+      console.log(side+oscMsg.args[1].value, oscMsg)
+    }
       controllerButtons[side+oscMsg.args[1].value] = { value: oscMsg.args[0].value, is_dpad: false, time: Date.now()}
     }
   }else if (oscMsg.address == "/VMC/Ext/Key") {
@@ -85,6 +89,10 @@ udpPort.on("message", function (oscMsg, timeTag, info) {
     cameraState = { x: oscMsg.args[1].value, y: oscMsg.args[2].value, z: oscMsg.args[3].value, rx: rot.x, ry: rot.y, rz: rot.z, fov: oscMsg.args[8].value }
   }
   udpPort.send(oscMsg, host , port)
+
+  if (CONFIG.repeat_packets && CONFIG.repeat_host && CONFIG.repeat_port){
+    usbPort.send(oscMsg, CONFIG.repeat_host , CONFIG.repeat_port)
+  }
 });
 
 
@@ -403,28 +411,43 @@ function startCameraMotion(motion_key, index = 0){
       if (p.EaseBezier == undefined) p.EaseBezier = [0.34,0.1,0.34,1]
       t = bezier(t, p.EaseBezier[0], p.EaseBezier[1], p.EaseBezier[2], p.EaseBezier[3])
     }
-  
+    let startPos = p.StartPos
+
+    if (p.UseCurrentPositionForStart){
+     startPos = {x: cameraState.x, y: cameraState.y, z: cameraState.z, FOV: cameraState.fov}
+    }
+
     if (p.TurnToHead){
       let headPos = calculateBonePosition(p.HeadBone)
       if (headPos == undefined) return
-      let x = (1 - t) * p.StartPos.x + t * p.EndPos.x
-      let y = (1 - t) * p.StartPos.y + t * p.EndPos.y
-      let z = (1 - t) * p.StartPos.z + t * p.EndPos.z
-      let fov = (1 - t) * p.StartPos.FOV + t * p.EndPos.FOV
+      let x = (1 - t) * startPos.x + t * p.EndPos.x
+      let y = (1 - t) * startPos.y + t * p.EndPos.y
+      let z = (1 - t) * startPos.z + t * p.EndPos.z
+      let fov = (1 - t) * startPos.FOV + t * p.EndPos.FOV
       headPos = {
         x: headPos.x + p.StartHeadOffset.x,
         y: headPos.y + p.StartHeadOffset.y,
         z: headPos.z + p.StartHeadOffset.z
       }
+      if (p.TurnToHeadHorizontal){
+        headPos.y = cameraState.y
+        headPos.z = cameraState.z
+      }
       let lookAtRot = lookAt(x,y,z,headPos.x, headPos.y, headPos.z)
       sendCameraPosition(x, y, z, lookAtRot.x, lookAtRot.y, lookAtRot.z, fov)
     }else{
-      let x = (1 - t) * p.StartPos.x + t * p.EndPos.x
-      let y = (1 - t) * p.StartPos.y + t * p.EndPos.y
-      let z = (1 - t) * p.StartPos.z + t * p.EndPos.z
-
-      let startRot = degreeToEuler(p.StartRot.x, p.StartRot.y, p.StartRot.z)
+      let x = (1 - t) * startPos.x + t * p.EndPos.x
+      let y = (1 - t) * startPos.y + t * p.EndPos.y
+      let z = (1 - t) * startPos.z + t * p.EndPos.z
+          
+      startRot = {}
       let endRot = degreeToEuler(p.EndRot.x, p.EndRot.y, p.EndRot.z)
+
+      if (p.UseCurrentPositionForStart){
+	      startRot = {x: cameraState.rx, y: cameraState.ry, z: cameraState.rz}
+      }else{
+	      startRot = degreeToEuler(startRot.x, startRot.y, startRot.z)
+      }
 
       let rx = (1 - t) * startRot.x + t * endRot.x
       let ry = (1 - t) * startRot.y + t * endRot.y
@@ -595,7 +618,7 @@ function startControllerTimer(){
 let lastKeyCombiDelay = {}
 function checkControllerIO(){
       blendShapeConfig.forEach((blendShape) => {
-      if (Date.now() - lastKeyCombiDelay[blendShape.name] < 1000) {
+      if (Date.now() - lastKeyCombiDelay[blendShape.name] < 500) {
 	      return;
       }
       if (blendShape.trigger_type != "controller") return;

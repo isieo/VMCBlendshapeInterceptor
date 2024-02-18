@@ -7,6 +7,9 @@
    "send_blendshape_to_performer": true,
    "debug_controller": false,
    "animation_fps": 30,
+   "repeat_packets": false,
+   "repeat_host": "127.0.0.1",  
+   "repeat_port": 39542,
    "blend_shapes": [
        {
           "name":"AlternativeCostume",
