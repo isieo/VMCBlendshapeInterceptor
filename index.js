@@ -429,6 +429,10 @@ function startCameraMotion(motion_key, index = 0){
         y: headPos.y + p.StartHeadOffset.y,
         z: headPos.z + p.StartHeadOffset.z
       }
+      if (p.TurnToHeadHorizontal){
+        headPos.y = cameraState.y
+        headPos.z = cameraState.z
+      }
       let lookAtRot = lookAt(x,y,z,headPos.x, headPos.y, headPos.z)
       sendCameraPosition(x, y, z, lookAtRot.x, lookAtRot.y, lookAtRot.z, fov)
     }else{

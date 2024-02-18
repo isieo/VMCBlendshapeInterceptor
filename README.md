@@ -26,6 +26,17 @@ set "send_blendshape_to_performer" to true and set the performer_port to the per
 the Performer. Remember to turn off "intercept" for blendshape config
 
 
+# Installation / Requirments
+Install Node 16.13.1 (will probably work for later versions too)
+
+Run:
+```
+npm start
+```
+
+For windows users, download the Release versions, i have included the node standalone binary. All you need to do is to run Start.bat
+
+
 # Configuration
 
 Configuration should be done in config.json
