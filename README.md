@@ -41,6 +41,9 @@ The first few lines should be quite self explainatory
     "send_blendshape_to_performer": false, //send the blendshapes to the performer port instead of the game/marionette
     "debug_controller": false,   // For VR use, you might want to find the actual button names, set this to true then in steamvr, press the buttons it should appear in the console window (make sure steam menu is closed)
     "animationFPS": 60,          // How many "frames" should be sent per second when animating a blendshape
+    "repeat_packets": false,          // Repeat all the packets to a different application, useful if want to have multiple marionette softwares
+    "repeat_host": "127.0.0.1",  
+    "repeat_port": 39542,
 ```
 
 
@@ -87,10 +90,6 @@ To get camera coordinates, you can set "CameraCoordinates" as one of the blendsh
 "camera_controls": {
    "MovementScript1": {  // Name of the movment script, use this in place of a Blendshape name in the Blendshape config to activate, values will be ignored in the blendshape config
       "Loop": true,                 // restart from begining when all motion has been performed
-      "TurnToHeadUseCameraSetting": false,
-                                    //"TurnToHeadUseCameraSetting"
-                                                         : If the setting to point the camera at the HMD is true, match it with the camera body.  
-                                                            If false, use the value in the Movements section.  
       "Movements": [                 //"Movements"        : Position description section of the moving camera.
          {
             "HeadBone": "Head",           // Name Of the Head Bone, you can change this to other body parts to override Head
