@@ -685,7 +685,7 @@ httpServer.get('/', (req, res) => {
   let resp = 'Trigger Via HTTP <br>\
   Available Endpoints:<br><ul>'
   blendShapeConfig.forEach((blendShape) => {
-	resp += `<li><a href ="/trigger/${blendShape.name}"http://127.0.0.1:${httpPort}}/trigger/${blendShape.name}</a></li>`
+	resp += `<li><a href ="/trigger/${blendShape.name}">http://127.0.0.1:${httpPort}}/trigger/${blendShape.name}</a></li>`
   })
   resp += '<ul>'
   res.send(resp)
