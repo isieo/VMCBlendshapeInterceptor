@@ -10,9 +10,10 @@
    "repeat_packets": false,
    "repeat_host": "127.0.0.1",  
    "repeat_port": 39542,
+   "httpPort": 8088,
    "blend_shapes": [
        {
-          "name":"AlternativeCostume",
+          "name":"Wings",
           "toggle":true,
           "intercept":true,
           "initial_value":0,
@@ -33,7 +34,7 @@
           "animation_type":"oneoff"
        },
        {
-          "name":"HideEars",
+          "name":"ShowEffect",
           "toggle":true,
           "intercept":true,
           "initial_value":0,

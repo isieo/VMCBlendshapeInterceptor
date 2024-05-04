@@ -1,17 +1,20 @@
 const fs = require('fs');
 const osc = require("osc")
 const CONFIG_FILE_NAME = process.argv[2] || 'config.json'
-
+const express = require('express')
+const httpServer = express()
 console.log("Using " + CONFIG_FILE_NAME)
 
 
 const CONFIG = JSON.parse(fs.readFileSync(CONFIG_FILE_NAME, 'utf8'));
-
+  
 var udpPort = new osc.UDPPort({
   localAddress: CONFIG.local_address,
   localPort: CONFIG.receive_port,
   metadata: true
 });
+
+const httpPort = CONFIG_FILE_NAME.httpPort || 8088
 
 // Listen for incoming OSC messages.
 
@@ -86,12 +89,18 @@ udpPort.on("message", function (oscMsg, timeTag, info) {
   
   }else if (oscMsg.address == "/VMC/Ext/Cam") {
     let rot = quaternionToEuler(oscMsg.args[4].value,oscMsg.args[5].value,oscMsg.args[6].value,oscMsg.args[7].value)
-    cameraState = { x: oscMsg.args[1].value, y: oscMsg.args[2].value, z: oscMsg.args[3].value, rx: rot.x, ry: rot.y, rz: rot.z, fov: oscMsg.args[8].value }
+	
+    cameraState = { 
+						x: oscMsg.args[1].value, y: oscMsg.args[2].value, z: oscMsg.args[3].value,
+						rx: rot.x, ry: rot.y, rz: rot.z, 
+						qx: oscMsg.args[4].value, qy: oscMsg.args[5].value, qz:oscMsg.args[6].value, qw: oscMsg.args[7].value,
+						fov: oscMsg.args[8].value,
+				}
   }
   udpPort.send(oscMsg, host , port)
 
   if (CONFIG.repeat_packets && CONFIG.repeat_host && CONFIG.repeat_port){
-    usbPort.send(oscMsg, CONFIG.repeat_host , CONFIG.repeat_port)
+    udpPort.send(oscMsg, CONFIG.repeat_host , CONFIG.repeat_port)
   }
 });
 
@@ -441,19 +450,20 @@ function startCameraMotion(motion_key, index = 0){
       let z = (1 - t) * startPos.z + t * p.EndPos.z
           
       startRot = {}
-      let endRot = degreeToEuler(p.EndRot.x, p.EndRot.y, p.EndRot.z)
+      let endRot = p.EndRot
 
       if (p.UseCurrentPositionForStart){
 	      startRot = {x: cameraState.rx, y: cameraState.ry, z: cameraState.rz}
       }else{
-	      startRot = degreeToEuler(startRot.x, startRot.y, startRot.z)
+	      startRot = p.StartRot
       }
 
       let rx = (1 - t) * startRot.x + t * endRot.x
       let ry = (1 - t) * startRot.y + t * endRot.y
       let rz = (1 - t) * startRot.z + t * endRot.z
       let fov = (1 - t) * p.StartPos.FOV + t * p.EndPos.FOV
-      sendCameraPosition(x, y, z, rx, ry, rz, fov)
+	    let eulerRot = degreeToEuler(rx, ry, rz)
+      sendCameraPosition(x, y, z, eulerRot.x, eulerRot.y, eulerRot.z, fov)
     }
     if (t >= 1) {
       clearInterval(cameraMotionTimer)
@@ -669,3 +679,33 @@ startControllerTimer()
 function startBlendshapeTimer(){
   setTimeout(update_blend_shapes,1000/animationFPS)
 }
+
+
+httpServer.get('/', (req, res) => {
+  let resp = 'Trigger Via HTTP <br>\
+  Available Endpoints:<br><ul>'
+  blendShapeConfig.forEach((blendShape) => {
+	resp += `<li><a href ="/trigger/${blendShape.name}"http://127.0.0.1:${httpPort}}/trigger/${blendShape.name}</a></li>`
+  })
+  resp += '<ul>'
+  res.send(resp)
+})
+
+httpServer.get('/trigger/:command', (req, res) => {
+	console.log(`HTTP Trigger ${req.params.command}`)
+	blendShapeConfig.forEach((blendShape) => {
+		if (blendShape.name == req.params.command){
+			if (cameraMotions[blendShape.name]) {
+			  setTimeout(()=>{startCameraMotion(blendShape.name)},1)
+			}else{
+			  start_transition(blendShape);
+			}
+			return
+		}
+	})
+	res.send('OK')
+})
+
+httpServer.listen(httpPort, () => {
+  console.log(`Http Server started on http://127.0.0.1:${httpPort}`)
+})

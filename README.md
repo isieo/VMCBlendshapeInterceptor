@@ -55,6 +55,7 @@ The first few lines should be quite self explainatory
     "repeat_packets": false,          // Repeat all the packets to a different application, useful if want to have multiple marionette softwares
     "repeat_host": "127.0.0.1",  
     "repeat_port": 39542,
+    "httpPort": 8088,            // HTTP Port that will be listening in localhost, this is useful to triggering blendshapes via an external application
 ```
 
 
@@ -457,6 +458,12 @@ Camera script example
 
 Upon pressing the A button on your VR controllers, this will set Start the Camera script motion
 
-
+[[/readme/camerademo.gif|Camera Script Motion]]
 
 ![Camera Script Motion](/readme/camerademo.gif)
+
+
+# Trigger Via HTTP
+
+By default, a http server will start listening in port 8088.
+open http://127.0.0.1:8088 to find the list of endpoints you can trigger via http
