@@ -1,6 +1,6 @@
 {
   "name": "vmcanimator",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "express": "^4.19.2",
     "osc": "^2.4.4"
   }
 }
