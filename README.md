@@ -252,8 +252,7 @@ BlendShape Config Example
 Upon pressing the X button and the A button on your VR controllers, this will set the value of the Blendshape "A" from 0 to 1 and 1 to 0  in a bezier curve for 1 second each cycle until the same button combination is pressed again
 
 
-
-[[/readme/demo.gif|Animated Mouth]]
+![Animated Mouth](/readme/demo.gif)
 
 
 
@@ -459,10 +458,9 @@ Camera script example
 
 Upon pressing the A button on your VR controllers, this will set Start the Camera script motion
 
-
-
 [[/readme/camerademo.gif|Camera Script Motion]]
 
+![Camera Script Motion](/readme/camerademo.gif)
 
 
 # Trigger Via HTTP
